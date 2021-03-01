@@ -1,0 +1,159 @@
+<!-- jquery -->
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"
+	integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
+<!-- materialize -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+<!-- user script -->
+<script>
+	//materializeの初期化
+	M.AutoInit();
+
+  //カテゴリから選択肢を絞る
+  $(function () {
+    $('#category').change(function () {
+      // categoryのvalueから表示するoptgroupをidで指定
+      var val = $(this).val();
+      var selectCatId = '#' + val;
+      $('optgroup').hide();
+      $(selectCatId).show();
+    });
+  });
+
+  //機器が選択された時に対応するカレンダーを表示
+  function changeCal() {
+    let calId = document.getElementById("kiki").value;
+    let url = "https://calendar.google.com/calendar/embed?src={}%40group.calendar.google.com&ctz=Asia%2FTokyo"
+    document.getElementById('calendar').src = url.replace("{}", calId.split("@")[0]);
+  }
+
+  /*
+  予約を新規追加
+  f = true　にすることで既に予約があっても強制的に追加
+  */
+  function add(f = false) {
+    //送信ボタンを隠して、プログレスバーを表示
+    document.getElementById("preloader").style.display = "block";
+    document.getElementById("submit-btn").style.display = "none";
+
+    //値の取得とバリデーション
+    let calId = document.getElementById("kiki").value;
+    if (calId == "") {
+      onFail("機器を選択してください。")
+      return null
+    }
+    let name = document.getElementById("name").value;
+    if (name == "") {
+      onFail("名前を入力してください。")
+      return null
+    }
+    let start = document.getElementById("start").value;
+    let end = document.getElementById("end").value;
+    let startTime = new Date(start + ":00+09:00");
+    let endTime = new Date(end + ":00+09:00");
+    //日時は未来のものかつ正の時間
+    if (new Date() > startTime || startTime > endTime) {
+      onFail("日時を正しく入力してください。")
+      return null
+    }
+
+    //apps scriptに送信
+    google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFail).addNewEvent(name, start, end, calId, f);
+  }
+
+  //add()成功時に実行
+  function onSuccess(s) {
+    //ボタンを戻す
+    document.getElementById("preloader").style.display = "none";
+    document.getElementById("submit-btn").style.display = "block";
+
+    if (s[0]) {
+      //予約がない時
+      alert(s[1]);
+      changeCal();
+    }
+    else {
+      //既に予約がある時
+      if (window.confirm(s[1])) {
+        add(true)
+      }
+    }
+  }
+
+  //add()失敗時に実行
+  function onFail(s) {
+    //ボタンを戻す
+    document.getElementById("preloader").style.display = "none";
+    document.getElementById("submit-btn").style.display = "block";
+    alert(s);
+  }
+
+  
+  //予約のリストを取得
+  function list() {
+    //送信ボタンを隠して、プログレスバーを表示
+    document.getElementById("preloader2").style.display = "block";
+    document.getElementById("submit-btn2").style.display = "none";
+
+    //値の取得とバリデーション
+    let calId = document.getElementById("kiki").value;
+    if (calId == "") {
+      onFail2("機器を選択してください。")
+      return null
+    }
+    let name = document.getElementById("name").value;
+    if (name == "") {
+      onFail2("名前を入力してください。")
+      return null
+    }
+
+    //apps scriptに送信
+    google.script.run.withSuccessHandler(onSuccess2).withFailureHandler(onFail2).listEvents(name, calId);
+  }
+
+  //list()成功時に実行
+  function onSuccess2(s) {
+    //ボタンを戻す
+    document.getElementById("preloader2").style.display = "none";
+    document.getElementById("submit-btn2").style.display = "block";
+
+    //リストのhtmlを文字列として構築
+    let html = "<table class='responsive-table'><thead><tr><th>開始時間</th><th>終了時間</th><th>操作</th></tr></thead><tbody>"
+    if (s.length > 0) {
+      //予約がある時
+      s.forEach(function (event) {
+        //htmlのテーブルを描画
+        html += `<tr><td>${event[1]}</td><td>${event[2]}</td><td><div class="btn-small waves-effect waves-light red" onclick="deleteEvent('${event[0]}');">削除<div></td></tr>`
+      })
+    }
+    else {
+      //予約がない時
+      html += "<tr><td>予約なし</td><td></td><td></td></tr>"
+    }
+    html += "</tbody></table>"
+
+    //要素の挿入
+    document.getElementById("reserve-list").innerHTML = html;
+  }
+
+  //list()失敗時に実行
+  function onFail2(s) {
+    //ボタンを戻す
+    document.getElementById("preloader2").style.display = "none";
+    document.getElementById("submit-btn2").style.display = "block";
+    alert(s);
+  }
+
+  //予約を削除
+  function deleteEvent(eventId) {
+    if (window.confirm("予約を削除しますか？")) {
+      google.script.run.withSuccessHandler(onSuccess3).deleteEvent(document.getElementById("kiki").value, eventId);
+      document.getElementById("preloader2").style.display = "block";
+      document.getElementById("submit-btn2").style.display = "none";
+    }
+  };
+  function onSuccess3(s) {
+    //成功したらリストとカレンダーを更新
+    list();
+    changeCal();
+  }
+</script>
