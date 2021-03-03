@@ -21,7 +21,19 @@
       $(selectCatId).show();
     });
   });
-
+  function showModal(id, start, end, comment,link){
+    document.getElementById("eventId").value = id;
+    document.getElementById("start_e").value = start.replace("+09:00","");
+    document.getElementById("end_e").value = end.replace("+09:00","");
+    var textArea = document.getElementById("comment_e");
+    textArea.value = comment;
+    M.textareaAutoResize(textArea);
+    M.updateTextFields();
+    document.getElementById("cal_link").href = link;
+    var elem = document.getElementById('modal1');
+    var instance = M.Modal.getInstance(elem);
+    instance.open()
+  }
   //機器が選択された時に対応するカレンダーを表示
   function changeCal() {
     let calId = document.getElementById("kiki").value;
@@ -60,12 +72,13 @@
       onFail("日時を正しく入力してください。\n過去の日時では予約できません。");
       return null;
     }
+    let comment = document.getElementById("comment").value;
 
     //apps scriptに送信
     google.script.run
       .withSuccessHandler(onSuccess)
       .withFailureHandler(onFail)
-      .addNewEvent(name, start, end, calId, f);
+      .addNewEvent(name, start, end, comment, calId, f);
   }
 
   //add()成功時に実行
@@ -134,6 +147,16 @@
     }
 
     // creates a <table> element and a <tbody> element
+    var input1 = document.createElement("input");
+    input1.setAttribute("value",document.getElementById("name").value);
+    input1.setAttribute("id","name_e");
+    input1.setAttribute("style","display:none;");
+    var input2 = document.createElement("input");
+    input2.setAttribute("value",document.getElementById("kiki").value);
+    input2.setAttribute("id","calid_e");
+    input2.setAttribute("style","display:none;");
+    body.appendChild(input1);
+    body.appendChild(input2);
     var tbl = document.createElement("table");
     var tblHead = document.createElement("thead");
     var heads = ["開始時間", "終了時間", "操作"];
@@ -154,19 +177,28 @@
         var row = document.createElement("tr");
         for (var i = 1; i < 3; i++) {
           var cell = document.createElement("td");
-          var cellText = document.createTextNode(event[i]);
+          var cellText = document.createTextNode((new Date(event[i])).toLocaleString('JST').slice(2, -3));
           cell.appendChild(cellText);
           row.appendChild(cell);
         }
 
-        var cell = document.createElement("td");
+        
+        var cell2 = document.createElement("td");
         var btn = document.createElement("div");
-        btn.setAttribute("class", "btn-small waves-effect waves-light red");
-        btn.setAttribute("onclick", `deleteEvent("${event[0]}");`);
-        var btnText = document.createTextNode("削除");
+        //　編集ボタンを生成
+        btn.setAttribute("class", "btn-small waves-effect waves-light grey");
+        btn.setAttribute("onclick", `showModal("${event[0]}","${event[1]}","${event[2]}","${event[3]}","${event[4]}","${event[5]}");`);
+        var btnText = document.createTextNode("詳細");
         btn.appendChild(btnText);
-        cell.appendChild(btn);
-        row.appendChild(cell);
+        cell2.appendChild(btn);
+        //　削除ボタンを生成 
+        var btn2 = document.createElement("div");
+        btn2.setAttribute("class", "btn-small waves-effect waves-light red");
+        btn2.setAttribute("onclick", `deleteEvent("${event[0]}");`);
+        var btn2Text = document.createTextNode("削除");
+        btn2.appendChild(btn2Text);
+        cell2.appendChild(btn2);
+        row.appendChild(cell2);
         //htmlのテーブルを描画
         tblBody.appendChild(row);
       });
@@ -217,5 +249,59 @@
     //成功したらリストとカレンダーを更新
     list();
     changeCal();
+  }
+
+  function edit(f = false) {
+    //送信ボタンを隠して、プログレスバーを表示
+    document.getElementById("preloader3").style.display = "block";
+    document.getElementById("edit-btn").style.display = "none";
+
+    //値の取得とバリデーション
+    let name = document.getElementById("name_e").value;
+    let calId = document.getElementById("calid_e").value;
+    let eventId = document.getElementById("eventId").value;
+    let start = document.getElementById("start_e").value;
+    let end = document.getElementById("end_e").value;
+    let startTime = new Date(start + ":00+09:00");
+    let endTime = new Date(end + ":00+09:00");
+    //日時は未来のものかつ正の時間
+    if (new Date() > startTime || startTime > endTime) {
+      onFail("日時を正しく入力してください。\n過去の日時では予約できません。");
+      return null;
+    }
+    let comment = document.getElementById("comment_e").value;
+
+    //apps scriptに送信
+    google.script.run
+      .withSuccessHandler(onSuccess4)
+      .withFailureHandler(onFail4)
+      .editEvent(name, start, end, comment, calId, eventId, f = false);
+  }
+
+  //add()成功時に実行
+  function onSuccess4(s) {
+    //ボタンを戻す
+    document.getElementById("preloader3").style.display = "none";
+    document.getElementById("edit-btn").style.display = "block";
+
+    if (s[0]) {
+      //予約がない時
+      alert(s[1]);
+      changeCal();
+      list();
+    } else {
+      //既に予約がある時
+      if (window.confirm(s[1])) {
+        edit(true);
+      }
+    }
+  }
+
+  //add()失敗時に実行
+  function onFail4(s) {
+    //ボタンを戻す
+    document.getElementById("preloader3").style.display = "none";
+    document.getElementById("edit-btn").style.display = "block";
+    alert(s);
   }
 </script>

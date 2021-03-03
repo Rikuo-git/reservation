@@ -30,7 +30,7 @@ function include(filename) {
     .getContent();
 }
 
-function addNewEvent(name, start, end, calId, f = false) {
+function addNewEvent(name, start, end, comment, calId, f = false) {
   const startTime = new Date(start + ":00+09:00");
   const endTime = new Date(end + ":00+09:00");
   const cal = CalendarApp.getCalendarById(calId);
@@ -44,13 +44,33 @@ function addNewEvent(name, start, end, calId, f = false) {
   }
 
   // 予約をカレンダーに記入
-  const event = cal.createEvent(name, startTime, endTime);
+  const event = cal.createEvent(name, startTime, endTime, { "description": comment });
   if (event.getId) {
     return [true, "予約完了"]
   }
   else {
     return [true, "登録に問題が発生しました。"]
   }
+}
+
+function editEvent(name, start, end, comment, calId,eventId, f = false) {
+  const startTime = new Date(start + ":00+09:00");
+  const endTime = new Date(end + ":00+09:00");
+  const cal = CalendarApp.getCalendarById(calId);
+
+  //指定した時間の予約を取得
+  const events = cal.getEvents(startTime, endTime).filter(event => event.getTitle() != name);
+
+  if (events.length > 0 && f == false) {
+    //既に予約がある時、f==trueの時はあっても記入する
+    return [false, "既に予約している人がいます。\nそれでも登録しますか？"]
+  }
+
+  // 予約をカレンダーに記入
+  const event = cal.getEventById(eventId);
+  event.setTime(startTime,endTime);
+  event.setDescription(comment);
+  return [true, "予約完了"];
 }
 
 function listEvents(name, calId) {
@@ -77,7 +97,9 @@ function listEvents(name, calId) {
       const id = event.getId();
       const start = event.getStartTime();
       const end = event.getEndTime();
-      return [id, Utilities.formatDate(start, 'JST', 'yy/MM/dd HH:mm'), Utilities.formatDate(end, 'JST', 'yy/MM/dd HH:mm')];
+      const comment = event.getDescription();
+      const eventURL = "https://www.google.com/calendar/event?eid=" + Utilities.base64Encode(event.getId().split('@')[0] + " " + calId);
+      return [id, Utilities.formatDate(start,'JST',"yyyy-MM-dd'T'HH:mm+09:00"), Utilities.formatDate(end,'JST',"yyyy-MM-dd'T'HH:mm+09:00"), comment, eventURL];
     });
   return eventList;
 }
@@ -85,4 +107,8 @@ function listEvents(name, calId) {
 function deleteEvent(calId, id) {
   const event = CalendarApp.getCalendarById(calId).getEventById(id);
   event.deleteEvent();
+}
+
+function test(){
+  Logger.log(Utilities.formatDate(new Date(),'JST',"yyyy/MM/dd'T'HH:mm+09:00"))
 }
