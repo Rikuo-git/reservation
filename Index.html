@@ -5,6 +5,9 @@
     <base target="_top" />
     <!-- CSSのロード -->
     <?!= include('Stylesheet'); ?>
+    <script>
+      var kikiList = JSON.parse("<?= JSON.stringify(kikiList); ?>");
+    </script>
   </head>
 
   <body>
@@ -31,29 +34,17 @@
             <div class="row">
               <!-- category -->
               <div class="input-field col m3">
-                <select id="category" class="browser-default grey lighten-5">
+                <select id="category">
                   <option value="" disabled selected>カテゴリ</option>
-                  <? Object.keys(kikiList).forEach(function(category){ ?>
-                  <option value="<?= category ?>"><?= category ?></option>
-                  <? }) ?>
                 </select>
               </div>
               <!-- kiki -->
               <div class="input-field col m3">
                 <select
                   id="kiki"
-                  class="browser-default grey lighten-5"
                   onchange="changeCal();"
                 >
                   <option value="" disabled selected>機器名</option>
-                  <? Object.keys(kikiList).forEach(function(category){ ?>
-                  <optgroup id="<?= category ?>" label="<?= category ?>">
-                    <? kikiList[category].forEach(function(kiki){ ?>
-                    <option value="<?= kiki.cal_id ?>"><?= kiki.name ?></option>
-                    <? }) ?>
-                  </optgroup>
-
-                  <? }) ?>
                 </select>
               </div>
               <!-- name -->
@@ -70,20 +61,22 @@
                   <input
                     id="start"
                     type="datetime-local"
+                    step="900"
                     value="<?= Utilities.formatDate(new Date(),'JST','yyyy-MM-dd') ?>T00:00"
                   />
                   <label>開始日時</label>
-                  <input type="date" value="2012-02-16" style="display: none">
+                  <input type="date" value="2012-02-16" style="display: none" />
                 </div>
                 <!-- end time -->
                 <div class="input-field col m6">
                   <input
                     id="end"
                     type="datetime-local"
+                    step="900"
                     value="<?= Utilities.formatDate(new Date(),'JST','yyyy-MM-dd') ?>T00:00"
                   />
                   <label>終了日時</label>
-                  <input type="date" value="2012-02-16" style="display: none">
+                  <input type="date" value="2012-02-16" style="display: none" />
                 </div>
               </div>
               <div class="row">
@@ -127,11 +120,16 @@
                   <!-- Modal Structure -->
                   <div id="modal1" class="modal">
                     <div class="modal-content">
-                      <input id="eventId" value="" style="display:none;">
+                      <input id="eventId" value="" style="display: none" />
                       <div class="row">
                         <!-- start time -->
                         <div class="input-field col m6">
-                          <input id="start_e" type="datetime-local" value="" />
+                          <input
+                            id="start_e"
+                            type="datetime-local"
+                            step="900"
+                            value=""
+                          />
                           <label>開始日時</label>
                           <input
                             type="date"
@@ -141,7 +139,13 @@
                         </div>
                         <!-- end time -->
                         <div class="input-field col m6">
-                          <input id="end_e" type="datetime-local" value="" />
+                          <input
+                            id="end_e"
+                            type="datetime-local"
+                            step="900"
+                            value=""
+                            required
+                          />
                           <label>終了日時</label>
                           <input
                             type="date"
@@ -160,32 +164,39 @@
                         </div>
                       </div>
                       <div class="row">
-                        <div class="col s12 grey-text">Google Calendar：
-                          <a id="cal_link" href="#" target="_blank" rel="noopener noreferrer">リンク</a>
+                        <div class="col s12 grey-text">
+                          Google Calendar：
+                          <a
+                            id="cal_link"
+                            href="#"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            >リンク</a
+                          >
                         </div>
                       </div>
                     </div>
                     <div class="modal-footer">
                       <!-- progress bar -->
                       <div id="preloader3" class="row" style="display: none">
-                      <div class="col m6 offset-m3">
-                        <div class="progress cyan lighten-4">
-                          <div class="indeterminate cyan"></div>
+                        <div class="col m6 offset-m3">
+                          <div class="progress cyan lighten-4">
+                            <div class="indeterminate cyan"></div>
+                          </div>
                         </div>
                       </div>
-                      </div>
                       <div id="edit-btn">
-                      <button
-                        class="btn waves-effect waves-light cyan"
-                        onclick="edit();"
-                      >
-                        編集
-                      </button>
-                      <button
-                        class="modal-close btn waves-effect waves-light red"
-                      >
-                        閉じる
-                      </button>
+                        <button
+                          class="btn waves-effect waves-light cyan"
+                          onclick="edit();"
+                        >
+                          編集
+                        </button>
+                        <button
+                          class="modal-close btn waves-effect waves-light red"
+                        >
+                          閉じる
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -224,8 +235,8 @@
                 id="calendar"
                 src="https://calendar.google.com/calendar/embed?height=600&amp;wkst=1&amp;bgcolor=%23ffffff&amp;ctz=Asia%2FTokyo&amp;src=Y18zdWl0NTkyaXZwaDFjYXI0cnFsZTIzN2o2Z0Bncm91cC5jYWxlbmRhci5nb29nbGUuY29t&amp;src=Y19jNGhqb3JoN2ZxazhtYTN1cm5vYmMzZWtza0Bncm91cC5jYWxlbmRhci5nb29nbGUuY29t&amp;color=%23F4511E&amp;color=%23A79B8E&amp;showTitle=0"
                 style="border-width: 0"
-                width="800"
-                height="600"
+                width="500"
+                height="500"
                 frameborder="0"
                 scrolling="no"
               ></iframe>

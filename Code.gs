@@ -110,5 +110,5 @@ function deleteEvent(calId, id) {
 }
 
 function test(){
-  Logger.log(Utilities.formatDate(new Date(),'JST',"yyyy/MM/dd'T'HH:mm+09:00"))
+  Logger.log(new Date > new Date("Wed Dec 31 19:00:00 GMT-05:00 1969"))
 }
