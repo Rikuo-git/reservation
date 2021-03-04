@@ -29,8 +29,6 @@
       });
       kikiSelect.appendChild(group);
     };
-    M.FormSelect.init(cateSelect, {});
-    M.FormSelect.init(kikiSelect, {});
   };
 
   document.getElementById("category").addEventListener("change",(event) => {
@@ -51,7 +49,6 @@
       option.append(kiki.name)
       kikiSelect.appendChild(option);
     });
-    M.FormSelect.init(kikiSelect, {});
   });
 
 
