@@ -1,74 +1,136 @@
-<!-- jquery -->
-<script src="https://code.jquery.com/jquery-3.5.1.min.js"
-	integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
 <!-- materialize -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 <!-- user script -->
 <script>
-	//materializeの初期化
+  //グローバル
+  let kikiList;
+  //materializeの初期化
   M.AutoInit();
 
   //カテゴリから選択肢を絞る
-  window.onload = function(){
-    var cateSelect = document.getElementById("category");
-    var kikiSelect = document.getElementById("kiki");
-    for(var key in kikiList){
-      var optionCat = document.createElement("option");
-      optionCat.setAttribute("value",key);
-      optionCat.append(key);
-      cateSelect.appendChild(optionCat);
+  window.onload = function () {
+    /**
+     * ajax成功時、選択肢に反映
+     * @param {Object} kikiList
+     */
+    function onSuccess(e) {
+      kikiList = e;
+      const cateSelect = document.getElementById("category");
+      const kikiSelect = document.getElementById("kiki");
+      for (let key in kikiList) {
+        const optionCat = document.createElement("option");
+        optionCat.setAttribute("value", key);
+        optionCat.append(key);
+        cateSelect.appendChild(optionCat);
 
-      var group = document.createElement("optgroup");
-      group.setAttribute("label",key);
-      group.setAttribute("id",key);
-      kikiList[key].forEach(function(kiki){
-        var option = document.createElement("option");
-        option.setAttribute("value",kiki.cal_id);
-        option.append(kiki.name)
-        group.appendChild(option);
-      });
-      kikiSelect.appendChild(group);
-    };
+        const group = document.createElement("optgroup");
+        group.setAttribute("label", key);
+        group.setAttribute("id", key);
+        kikiList[key].forEach(function (kiki) {
+          const option = document.createElement("option");
+          option.setAttribute("value", kiki.cal_id);
+          option.append(kiki.name);
+          group.appendChild(option);
+        });
+        kikiSelect.appendChild(group);
+      }
+      document.getElementById("loading").style.display = "none";
+      document.querySelector(".container").style.visibility = "visible";
+    }
+    /**
+     * 失敗時、アラート
+     * @param {Object} e
+     */
+    function onFailure(e) {
+      showAlert("機器のリストを取得できませんでした。ページをリロードしてください。");
+    }
+    google.script.run
+      .withSuccessHandler(onSuccess)
+      .withFailureHandler(onFailure)
+      .getKikiList();
   };
 
-  document.getElementById("category").addEventListener("change",(event) => {
-    var selected = event.target.value;
-    var kikiSelect = document.getElementById("kiki");
+  document.getElementById("category").addEventListener("change", (event) => {
+    const selected = event.target.value;
+    const kikiSelect = document.getElementById("kiki");
     while (kikiSelect.firstChild) {
       kikiSelect.removeChild(kikiSelect.lastChild);
     }
-    var optionHead = document.createElement("option");
-    optionHead.setAttribute("value","");
-    optionHead.disabled = true;
-    optionHead.selected = true;
-    optionHead.append("機器名")
+    // 見出しを生成
+    const optionHead = document.createElement("option");
+    optionHead.setAttribute("value", "");
+    optionHead.setAttribute("disable", true);
+    optionHead.setAttribute("selected", true);
+    optionHead.append("機器名");
     kikiSelect.appendChild(optionHead);
-    kikiList[selected].forEach(function(kiki){
-      var option = document.createElement("option");
-      option.setAttribute("value",kiki.cal_id);
-      option.append(kiki.name)
+
+    kikiList[selected].forEach(function (kiki) {
+      const option = document.createElement("option");
+      option.setAttribute("value", kiki.cal_id);
+      option.append(kiki.name);
       kikiSelect.appendChild(option);
     });
   });
 
+  /**
+   * アラートモーダルを表示
+   * @param {string} message
+   */
+  function showAlert(message) {
+    const dialog = document.getElementById("alert");
+    const content = dialog.querySelector(".modal-content");
+    while (content.firstChild) {
+      content.removeChild(content.lastChild);
+    }
+    const text = document.createTextNode(message);
+    content.appendChild(text);
+    const instance = M.Modal.getInstance(dialog);
+    instance.open();
+  }
+  /**
+   * 確認モーダルを表示
+   * @param {string} message
+   * @param {string} onclick
+   */
+  function showConfirm(message, onclick) {
+    const dialog = document.getElementById("confirm");
+    const content = dialog.querySelector(".modal-content");
+    while (content.firstChild) {
+      content.removeChild(content.lastChild);
+    }
+    const text = document.createTextNode(message);
+    content.appendChild(text);
+    const okBtn = dialog.querySelector(".confirm-ok");
+    okBtn.setAttribute("onClick", onclick);
+    const instance = M.Modal.getInstance(dialog);
+    instance.open();
+  }
 
-  function showModal(id, start, end, comment,link){
-    document.getElementById("eventId").value = id;
-    document.getElementById("start_e").value = start.replace("+09:00","");
-    document.getElementById("end_e").value = end.replace("+09:00","");
-    var textArea = document.getElementById("comment_e");
+  /**
+   * 編集モーダルを表示
+   * @param {string} params
+   */
+  function showModal(params) {
+    const { eventId, start, end, comment, link } = JSON.parse(params);
+    document.getElementById("eventId").value = eventId;
+    document.getElementById("start_e").value = start.replace("+09:00", "");
+    document.getElementById("end_e").value = end.replace("+09:00", "");
+    const textArea = document.getElementById("comment_e");
     textArea.value = comment;
     M.textareaAutoResize(textArea);
     M.updateTextFields();
     document.getElementById("cal_link").href = link;
-    var elem = document.getElementById('modal1');
-    var instance = M.Modal.getInstance(elem);
-    instance.open()
+    const elem = document.getElementById("modal1");
+    const instance = M.Modal.getInstance(elem);
+    instance.open();
   }
-  //機器が選択された時に対応するカレンダーを表示
+
+  /**
+   * 機器が変更された時に対応するカレンダーを表示
+   */
   function changeCal() {
-    var calId = document.getElementById("kiki").value;
-    var url =
+    const calId = document.getElementById("kiki").value;
+    const url =
       "https://calendar.google.com/calendar/embed?src={}%40group.calendar.google.com&ctz=Asia%2FTokyo";
     document.getElementById("calendar").src = url.replace(
       "{}",
@@ -78,69 +140,87 @@
 
   // 予約を新規追加
   // f = true　にすることで既に予約があっても強制的に追加
+  /**
+   * 予約を新規追加, f = trueで既に予約があっても強制追加
+   * @param {boolean} f
+   * @return {null}
+   */
   function add(f = false) {
     //送信ボタンを隠して、プログレスバーを表示
     document.getElementById("preloader").style.display = "block";
     document.getElementById("submit-btn").style.display = "none";
 
     //値の取得とバリデーション
-    var calId = document.getElementById("kiki").value;
-    if (calId == "") {
-      onFail("機器を選択してください。");
-      return null;
+    const params = {
+      calId: document.getElementById("kiki").value,
+      name: document.getElementById("name").value,
+      start: document.getElementById("start").value,
+      end: document.getElementById("end").value,
+      comment: document.getElementById("comment").value,
+      force: f,
+    };
+
+    const validation = { error: false, msg: "" };
+    if (params.calId == "") {
+      validation.msg += "機器を選択してください。";
+      validation.error = true;
     }
-    var name = document.getElementById("name").value;
-    if (name == "") {
-      onFail("名前を入力してください。");
-      return null;
+    if (params.name == "") {
+      validation.msg += "名前を入力してください。";
+      validation.error = true;
     }
-    var start = document.getElementById("start").value;
-    var end = document.getElementById("end").value;
-    var dateEx = new RegExp(/^20[0-9]{2}-[0-1][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]$/)
-    if(!(dateEx.test(start) && dateEx.test(end))){
-      onFail("日付はyyyy-MM-ddTHH:mmの形式のみ入力できます。\n例:2021-03-03T19:00。");
-      return null;
+    const dateEx = new RegExp(
+      /^20[0-9]{2}-[0-1][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]$/
+    );
+    if (!(dateEx.test(params.start) && dateEx.test(params.end))) {
+      validation.msg +=
+        "日付はyyyy-MM-ddTHH:mmの形式のみ入力できます(例:2021-03-03T19:00)。";
+      validation.error = true;
     }
-    var startTime = new Date(start + ":00+09:00");
-    var endTime = new Date(end + ":00+09:00");
+    const startTime = new Date(params.start + ":00+09:00");
+    const endTime = new Date(params.end + ":00+09:00");
     //日時は未来のものかつ正の時間
-    if (new Date() > startTime || startTime > endTime) {
-      onFail("日時を正しく入力してください。\n過去の日時では予約できません。");
+    if (startTime >= endTime) {
+      validation.msg += "日時を正しく入力してください。";
+      validation.error = true;
+    }
+    if (new Date() > startTime) {
+      validation.msg += "過去の日時では予約できません。";
+      validation.error = true;
+    }
+
+    if (validation.error) {
+      onFailure(validation.msg);
       return null;
     }
-    var comment = document.getElementById("comment").value;
+
+    function onSuccess(e) {
+      //ボタンを戻す
+      document.getElementById("preloader").style.display = "none";
+      document.getElementById("submit-btn").style.display = "block";
+
+      if (e.done) {
+        //予約がない時
+        showAlert(e.msg);
+        changeCal();
+      } else {
+        //既に予約がある時
+        showConfirm(e.msg, "add(true);");
+      }
+    }
+
+    function onFailure(e) {
+      //ボタンを戻す
+      document.getElementById("preloader").style.display = "none";
+      document.getElementById("submit-btn").style.display = "block";
+      showAlert(e);
+    }
 
     //apps scriptに送信
     google.script.run
       .withSuccessHandler(onSuccess)
-      .withFailureHandler(onFail)
-      .addNewEvent(name, start, end, comment, calId, f);
-  }
-
-  //add()成功時に実行
-  function onSuccess(s) {
-    //ボタンを戻す
-    document.getElementById("preloader").style.display = "none";
-    document.getElementById("submit-btn").style.display = "block";
-
-    if (s[0]) {
-      //予約がない時
-      alert(s[1]);
-      changeCal();
-    } else {
-      //既に予約がある時
-      if (window.confirm(s[1])) {
-        add(true);
-      }
-    }
-  }
-
-  //add()失敗時に実行
-  function onFail(s) {
-    //ボタンを戻す
-    document.getElementById("preloader").style.display = "none";
-    document.getElementById("submit-btn").style.display = "block";
-    alert(s);
+      .withFailureHandler(onFailure)
+      .addNewEvent(params);
   }
 
   //予約のリストを取得
@@ -150,194 +230,227 @@
     document.getElementById("submit-btn2").style.display = "none";
 
     //値の取得とバリデーション
-    var calId = document.getElementById("kiki").value;
-    if (calId == "") {
-      onFail2("機器を選択してください。");
+    const params = {
+      calId: document.getElementById("kiki").value,
+      name: document.getElementById("name").value,
+    };
+
+    const validation = { error: false, msg: "" };
+    if (params.calId == "") {
+      validation.msg += "機器を選択してください。";
+      validation.error = true;
+    }
+    if (params.name == "") {
+      validation.msg += "名前を入力してください。";
+      validation.error = true;
+    }
+    if (validation.error) {
+      onFailure(validation.msg);
       return null;
     }
-    var name = document.getElementById("name").value;
-    if (name == "") {
-      onFail2("名前を入力してください。");
-      return null;
+
+    function onSuccess(s) {
+      //ボタンを戻す
+      document.getElementById("preloader2").style.display = "none";
+      document.getElementById("submit-btn2").style.display = "block";
+
+      // get the reference for the body
+      const body = document.getElementById("reserve-list");
+
+      // reset element
+      while (body.firstChild) {
+        body.removeChild(body.lastChild);
+      }
+
+      // form送信用の隠しinput
+      const input1 = document.createElement("input");
+      input1.setAttribute("value", document.getElementById("name").value);
+      input1.setAttribute("id", "name_e");
+      input1.setAttribute("style", "display:none;");
+      const input2 = document.createElement("input");
+      input2.setAttribute("value", document.getElementById("kiki").value);
+      input2.setAttribute("id", "calid_e");
+      input2.setAttribute("style", "display:none;");
+      body.appendChild(input1);
+      body.appendChild(input2);
+
+      // tableの描画
+      const tbl = document.createElement("table");
+      const tblHead = document.createElement("thead");
+      const heads = ["開始時間", "終了時間", "操作"];
+      const trow = document.createElement("tr");
+      heads.forEach(function (head) {
+        const tcell = document.createElement("td");
+        const tcellText = document.createTextNode(head);
+        tcell.appendChild(tcellText);
+        trow.appendChild(tcell);
+      });
+      tblHead.appendChild(trow);
+      const tblBody = document.createElement("tbody");
+
+      // creating all cells
+      if (s.length > 0) {
+        //予約がある時
+        s.forEach(function (event) {
+          const row = document.createElement("tr");
+          ["start", "end"].forEach(function (time) {
+            const cell = document.createElement("td");
+            const cellText = document.createTextNode(
+              new Date(event[time]).toLocaleString("JST").slice(2, -3)
+            );
+            cell.appendChild(cellText);
+            row.appendChild(cell);
+          });
+
+          const cell2 = document.createElement("td");
+
+          //　編集ボタンを生成
+          const btn = document.createElement("div");
+          btn.setAttribute("class", "btn-small waves-effect waves-light grey");
+          btn.setAttribute("onclick", `showModal('${JSON.stringify(event)}');`);
+          const btnText = document.createTextNode("詳細");
+          btn.appendChild(btnText);
+          cell2.appendChild(btn);
+          //　削除ボタンを生成
+          const btn2 = document.createElement("div");
+          btn2.setAttribute("class", "btn-small waves-effect waves-light red");
+          btn2.setAttribute("onclick", `confirmDelete("${event.eventId}");`);
+          const btn2Text = document.createTextNode("削除");
+          btn2.appendChild(btn2Text);
+          cell2.appendChild(btn2);
+          row.appendChild(cell2);
+          //htmlのテーブルを描画
+          tblBody.appendChild(row);
+        });
+      } else {
+        //予約がない時
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+        const cellText = document.createTextNode("予約なし");
+        cell.appendChild(cellText);
+        row.appendChild(cell);
+        for (let i = 1; i < 3; i++) {
+          const cellBlank = document.createElement("td");
+          row.appendChild(cellBlank);
+        }
+
+        // add the row to the end of the table body
+        tblBody.appendChild(row);
+      }
+
+      tbl.appendChild(tblHead);
+      tbl.appendChild(tblBody);
+      body.appendChild(tbl);
+    }
+
+    function onFailure(e) {
+      //ボタンを戻す
+      document.getElementById("preloader2").style.display = "none";
+      document.getElementById("submit-btn2").style.display = "block";
+      showAlert(e);
     }
 
     //apps scriptに送信
     google.script.run
-      .withSuccessHandler(onSuccess2)
-      .withFailureHandler(onFail2)
-      .listEvents(name, calId);
+      .withSuccessHandler(onSuccess)
+      .withFailureHandler(onFailure)
+      .listEvents(params);
   }
 
-  //list()成功時に実行
-  function onSuccess2(s) {
-    //ボタンを戻す
-    document.getElementById("preloader2").style.display = "none";
-    document.getElementById("submit-btn2").style.display = "block";
-
-    // get the reference for the body
-    var body = document.getElementById("reserve-list");
-
-    // reset element
-    while (body.firstChild) {
-      body.removeChild(body.lastChild);
-    }
-
-    // creates a <table> element and a <tbody> element
-    var input1 = document.createElement("input");
-    input1.setAttribute("value",document.getElementById("name").value);
-    input1.setAttribute("id","name_e");
-    input1.setAttribute("style","display:none;");
-    var input2 = document.createElement("input");
-    input2.setAttribute("value",document.getElementById("kiki").value);
-    input2.setAttribute("id","calid_e");
-    input2.setAttribute("style","display:none;");
-    body.appendChild(input1);
-    body.appendChild(input2);
-    var tbl = document.createElement("table");
-    var tblHead = document.createElement("thead");
-    var heads = ["開始時間", "終了時間", "操作"];
-    var trow = document.createElement("tr");
-    heads.forEach(function (head) {
-      var tcell = document.createElement("td");
-      var tcellText = document.createTextNode(head);
-      tcell.appendChild(tcellText);
-      trow.appendChild(tcell);
-    });
-    tblHead.appendChild(trow);
-    var tblBody = document.createElement("tbody");
-
-    // creating all cells
-    if (s.length > 0) {
-      //予約がある時
-      s.forEach(function (event) {
-        var row = document.createElement("tr");
-        for (var i = 1; i < 3; i++) {
-          var cell = document.createElement("td");
-          var cellText = document.createTextNode((new Date(event[i])).toLocaleString('JST').slice(2, -3));
-          cell.appendChild(cellText);
-          row.appendChild(cell);
-        }
-
-        
-        var cell2 = document.createElement("td");
-        var btn = document.createElement("div");
-        //　編集ボタンを生成
-        btn.setAttribute("class", "btn-small waves-effect waves-light grey");
-        btn.setAttribute("onclick", `showModal("${event[0]}","${event[1]}","${event[2]}","${event[3]}","${event[4]}","${event[5]}");`);
-        var btnText = document.createTextNode("詳細");
-        btn.appendChild(btnText);
-        cell2.appendChild(btn);
-        //　削除ボタンを生成 
-        var btn2 = document.createElement("div");
-        btn2.setAttribute("class", "btn-small waves-effect waves-light red");
-        btn2.setAttribute("onclick", `deleteEvent("${event[0]}");`);
-        var btn2Text = document.createTextNode("削除");
-        btn2.appendChild(btn2Text);
-        cell2.appendChild(btn2);
-        row.appendChild(cell2);
-        //htmlのテーブルを描画
-        tblBody.appendChild(row);
-      });
-    } else {
-      //予約がない時
-      var row = document.createElement("tr");
-      var cell = document.createElement("td");
-      var cellText = document.createTextNode("予約なし");
-      cell.appendChild(cellText);
-      row.appendChild(cell);
-      for (var i = 1; i < 3; i++) {
-        var cellBlank = document.createElement("td");
-        row.appendChild(cellBlank);
-      }
-
-      // add the row to the end of the table body
-      tblBody.appendChild(row);
-    }
-
-    tbl.appendChild(tblHead);
-    // put the <tbody> in the <table>
-    tbl.appendChild(tblBody);
-    // appends <table> into <body>
-    body.appendChild(tbl);
-    // sets the border attribute of tbl to 2;
-    tbl.setAttribute("class", "responsive-table");
+  /**
+   * イベントを削除
+   * @param {string} eventId
+   */
+  function confirmDelete(eventId){
+    showConfirm("予約を削除しますか？",`deleteEvent("${eventId}");`)
   }
-
-  //list()失敗時に実行
-  function onFail2(s) {
-    //ボタンを戻す
-    document.getElementById("preloader2").style.display = "none";
-    document.getElementById("submit-btn2").style.display = "block";
-    alert(s);
-  }
-
-  //予約を削除
   function deleteEvent(eventId) {
-    if (window.confirm("予約を削除しますか？")) {
-      google.script.run
-        .withSuccessHandler(onSuccess3)
-        .deleteEvent(document.getElementById("kiki").value, eventId);
-      document.getElementById("preloader2").style.display = "block";
-      document.getElementById("submit-btn2").style.display = "none";
+    document.getElementById("preloader2").style.display = "block";
+    document.getElementById("submit-btn2").style.display = "none";
+
+    const params = {
+      calId: document.getElementById("calid_e").value,
+      eventId: eventId,
+    };
+
+    function onSuccess(s) {
+      //成功したらリストとカレンダーを更新
+      showAlert("削除しました。");
+      list();
+      changeCal();
     }
-  }
-  function onSuccess3(s) {
-    //成功したらリストとカレンダーを更新
-    list();
-    changeCal();
+
+    function onFailure(e) {
+      document.getElementById("preloader2").style.display = "none";
+      document.getElementById("submit-btn2").style.display = "block";
+      showAlert("削除できませんでした。");
+    }
+
+    google.script.run
+      .withSuccessHandler(onSuccess)
+      .withFailureHandler(onFailure)
+      .deleteEvent(params);
   }
 
+  /**
+   * イベントを編集
+   * @param {boolean} f
+   * @return {null}
+   */
   function edit(f = false) {
     //送信ボタンを隠して、プログレスバーを表示
     document.getElementById("preloader3").style.display = "block";
     document.getElementById("edit-btn").style.display = "none";
 
     //値の取得とバリデーション
-    var name = document.getElementById("name_e").value;
-    var calId = document.getElementById("calid_e").value;
-    var eventId = document.getElementById("eventId").value;
-    var start = document.getElementById("start_e").value;
-    var end = document.getElementById("end_e").value;
-    var startTime = new Date(start + ":00+09:00");
-    var endTime = new Date(end + ":00+09:00");
+    const params = {
+      name: document.getElementById("name_e").value,
+      calId: document.getElementById("calid_e").value,
+      eventId: document.getElementById("eventId").value,
+      start: document.getElementById("start_e").value,
+      end: document.getElementById("end_e").value,
+      comment: document.getElementById("comment_e").value,
+      force: f,
+    };
+    const startTime = new Date(params.start + ":00+09:00");
+    const endTime = new Date(params.end + ":00+09:00");
+
     //日時は未来のものかつ正の時間
     if (new Date() > startTime || startTime > endTime) {
-      onFail("日時を正しく入力してください。\n過去の日時では予約できません。");
+      onFailure("日時を正しく入力してください。過去の日時では予約できません。");
       return null;
     }
-    var comment = document.getElementById("comment_e").value;
+    //add()成功時に実行
+    function onSuccess(e) {
+      //ボタンを戻す
+      document.getElementById("preloader3").style.display = "none";
+      document.getElementById("edit-btn").style.display = "block";
+
+      if (e.done) {
+        //予約がない時
+        showAlert(e.msg);
+        changeCal();
+        list();
+      } else {
+        //既に予約がある時
+        if (window.confirm(e.msg)) {
+          edit(true);
+        }
+      }
+    }
+
+    //add()失敗時に実行
+    function onFailure(s) {
+      //ボタンを戻す
+      document.getElementById("preloader3").style.display = "none";
+      document.getElementById("edit-btn").style.display = "block";
+      showAlert(s);
+    }
 
     //apps scriptに送信
     google.script.run
-      .withSuccessHandler(onSuccess4)
-      .withFailureHandler(onFail4)
-      .editEvent(name, start, end, comment, calId, eventId, f = false);
-  }
-
-  //add()成功時に実行
-  function onSuccess4(s) {
-    //ボタンを戻す
-    document.getElementById("preloader3").style.display = "none";
-    document.getElementById("edit-btn").style.display = "block";
-
-    if (s[0]) {
-      //予約がない時
-      alert(s[1]);
-      changeCal();
-      list();
-    } else {
-      //既に予約がある時
-      if (window.confirm(s[1])) {
-        edit(true);
-      }
-    }
-  }
-
-  //add()失敗時に実行
-  function onFail4(s) {
-    //ボタンを戻す
-    document.getElementById("preloader3").style.display = "none";
-    document.getElementById("edit-btn").style.display = "block";
-    alert(s);
+      .withSuccessHandler(onSuccess)
+      .withFailureHandler(onFailure)
+      .editEvent(params);
   }
 </script>

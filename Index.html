@@ -5,8 +5,6 @@
     <base target="_top" />
     <!-- CSSのロード -->
     <?!= include('Stylesheet'); ?>
-    <script>
-      var kikiList = JSON.parse("<?= JSON.stringify(kikiList); ?>");
     </script>
   </head>
 
@@ -21,7 +19,16 @@
       <!-- Navbar -->
     </header>
     <main>
-      <div class="container">
+      <!-- preloader -->
+      <div class="row" id="loading">
+        <div class="col s6 offset-s3">
+          <div class="progress">
+            <div class="indeterminate"></div>
+          </div>
+        </div>
+      </div>
+      <!-- preloader -->
+      <div style="visibility: hidden;" class="container">
         <!-- form -->
         <div class="card">
           <div class="card-tabs">
@@ -104,7 +111,7 @@
                 <!-- progress bar -->
                 <div
                   id="preloader"
-                  class="col m6 offset-m3"
+                  class="col s6 offset-s3"
                   style="display: none"
                 >
                   <div class="progress cyan lighten-4">
@@ -181,7 +188,7 @@
                     <div class="modal-footer">
                       <!-- progress bar -->
                       <div id="preloader3" class="row" style="display: none">
-                        <div class="col m6 offset-m3">
+                        <div class="col s6 offset-s3">
                           <div class="progress cyan lighten-4">
                             <div class="indeterminate cyan"></div>
                           </div>
@@ -189,7 +196,7 @@
                       </div>
                       <div id="edit-btn">
                         <button
-                          class="btn waves-effect waves-light cyan"
+                          class="btn waves-effect waves-light"
                           onclick="edit();"
                         >
                           編集
@@ -217,7 +224,7 @@
                 <!-- progress bar -->
                 <div
                   id="preloader2"
-                  class="col m6 offset-m3"
+                  class="col s6 offset-s3"
                   style="display: none"
                 >
                   <div class="progress cyan lighten-4">
@@ -247,6 +254,25 @@
         </div>
         <!-- calendar -->
       </div>
+      <!-- alert -->
+      <div id="alert" class="modal">
+        <div class="modal-content">
+        </div>
+        <div class="modal-footer">
+        <button class="modal-close btn waves-effect waves-light">閉じる</button>
+        </div>
+      </div>
+      <!-- alert -->
+      <!-- confirm -->
+      <div id="confirm" class="modal">
+        <div class="modal-content">
+        </div>
+        <div class="modal-footer">
+        <button class="modal-close btn waves-effect waves-light grey">キャンセル</button>
+        <button class="confirm-ok modal-close btn waves-effect waves-light red">OK</button>
+        </div>
+      </div>
+      <!-- confirm -->
     </main>
     <footer class="page-footer blue-grey">
       <div class="container">
