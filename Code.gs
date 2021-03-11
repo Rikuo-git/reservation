@@ -65,26 +65,43 @@ function getKikiList() {
  * @return {Object}
  */
 function addNewEvent({ name, start, end, comment, calId, force = false }) {
-  const startTime = new Date(start + ":00+09:00");
-  const endTime = new Date(end + ":00+09:00");
-  const cal = CalendarApp.getCalendarById(calId);
-  //指定した時間の予約を取得
-  const events = cal.getEvents(startTime, endTime);
-  if (events.length > 0 && force == false) {
-    //既に予約がある時、f==trueの時はあっても記入する
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+
+    const startTime = new Date(start + ":00+09:00");
+    const endTime = new Date(end + ":00+09:00");
+    const cal = CalendarApp.getCalendarById(calId);
+    //指定した時間の予約を取得
+    const events = cal.getEvents(startTime, endTime);
+    if (events.length > 0 && force == false) {
+      //既に予約がある時、f==trueの時はあっても記入する
+      return {
+        done: false,
+        msg: "既に予約している人がいます。\nそれでも登録しますか？",
+      };
+    }
+    // 予約をカレンダーに記入
+    const event = cal.createEvent(name, startTime, endTime, {
+      description: comment,
+    });
+    if (event.getId) {
+      return { done: true, msg: "予約完了" };
+    } else {
+      return {
+        done: true,
+        msg:
+          "登録中に問題が発生しました。\nしばらくしてからもう一度お試しください。",
+      };
+    }
+  } catch (e) {
     return {
-      done: false,
-      msg: "既に予約している人がいます。\nそれでも登録しますか？",
+      done: true,
+      msg:
+        "登録中に問題が発生しました。\nしばらくしてからもう一度お試しください。",
     };
-  }
-  // 予約をカレンダーに記入
-  const event = cal.createEvent(name, startTime, endTime, {
-    description: comment,
-  });
-  if (event.getId) {
-    return { done: true, msg: "予約完了" };
-  } else {
-    throw "登録中に問題が発生しました。\nしばらくしてからもう一度お試しください。";
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -109,30 +126,41 @@ function editEvent({
   eventId,
   force = false,
 }) {
-  const startTime = new Date(start + ":00+09:00");
-  const endTime = new Date(end + ":00+09:00");
-  const cal = CalendarApp.getCalendarById(calId);
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+    const startTime = new Date(start + ":00+09:00");
+    const endTime = new Date(end + ":00+09:00");
+    const cal = CalendarApp.getCalendarById(calId);
 
-  //指定した時間の予約を取得
-  const events = cal
-    .getEvents(startTime, endTime)
-    .filter((event) => event.getTitle() != name);
+    //指定した時間の予約を取得
+    const events = cal
+      .getEvents(startTime, endTime)
+      .filter((event) => event.getTitle() != name);
 
-  if (events.length > 0 && force == false) {
-    //既に予約がある時、f==trueの時はあっても記入する
+    if (events.length > 0 && force == false) {
+      //既に予約がある時、f==trueの時はあっても記入する
+      return {
+        done: false,
+        msg: "既に予約している人がいます。\nそれでも登録しますか？",
+      };
+    }
+
+    // 予約をカレンダーに記入
+    const event = cal.getEventById(eventId);
+    event.setTime(startTime, endTime);
+    event.setDescription(comment);
+    return { done: true, msg: "予約完了" };
+  } catch (e) {
     return {
-      done: false,
-      msg: "既に予約している人がいます。\nそれでも登録しますか？",
+      done: true,
+      msg:
+        "登録中に問題が発生しました。\nしばらくしてからもう一度お試しください。",
     };
+  } finally {
+    lock.releaseLock();
   }
-
-  // 予約をカレンダーに記入
-  const event = cal.getEventById(eventId);
-  event.setTime(startTime, endTime);
-  event.setDescription(comment);
-  return { done: true, msg: "予約完了" };
 }
-
 /**
  * カレンダーのイベントのリストを取得
  * @param {Object} param0
